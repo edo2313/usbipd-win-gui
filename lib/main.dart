@@ -3,9 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:system_theme/system_theme.dart';
 import 'package:url_launcher/link.dart';
-import 'package:usbipdgui/screens/devices.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'screens/devices.dart';
 import 'screens/settings.dart';
 import 'theme.dart';
 
