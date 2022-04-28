@@ -19,7 +19,6 @@ class _DevicesState extends State<Devices> {
   @override
   Widget build(BuildContext context) {
     const spacer = SizedBox(height: 10.0);
-    const biggerSpacer = SizedBox(height: 40.0);
     List<TreeViewItem> treeViewItemsMultipleSelection = devices
         .map((e) => TreeViewItem(content: Text(e.name), value: e.id))
         .toList();
