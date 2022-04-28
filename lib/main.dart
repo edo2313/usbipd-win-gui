@@ -1,26 +1,20 @@
-import 'dart:io';
-
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:system_theme/system_theme.dart';
 import 'package:url_launcher/link.dart';
-import 'package:usbipdgui/screens/inputs.dart';
+import 'package:usbipdgui/screens/devices.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'screens/settings.dart';
 import 'theme.dart';
 
 const String appTitle = 'usbipd-win GUI';
-var usbipdVersion;
-RegExp exp = RegExp(r".*(USBPcap).*", multiLine: true);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  usbipdVersion = Process.runSync('usbipd', ['--version']);
-
   SystemTheme.accentColor.load();
-  
+
   await WindowManager.instance.ensureInitialized();
   windowManager.waitUntilReadyToShow().then((_) async {
     await windowManager.setTitleBarStyle(
@@ -31,7 +25,6 @@ void main() async {
     await windowManager.setMinimumSize(const Size(755, 545));
     await windowManager.center();
     await windowManager.show();
-    await windowManager.setPreventClose(true);
     await windowManager.setSkipTaskbar(false);
   });
   runApp(const MyApp());
@@ -95,6 +88,7 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
 
   int index = 0;
 
+  final devicesController = ScrollController();
   final settingsController = ScrollController();
   final viewKey = GlobalKey();
 
@@ -167,7 +161,7 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
         items: [
           PaneItem(
             icon: const Icon(FluentIcons.usb),
-            title: const Text('Inputs'),
+            title: const Text('Devices'),
           ),
         ],
         footerItems: [
@@ -184,7 +178,7 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
         ],
       ),
       content: NavigationBody(index: index, children: [
-        Inputs(controller: settingsController),
+        Devices(controller: devicesController),
         Settings(controller: settingsController),
       ]),
     );
@@ -192,33 +186,8 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
 
   @override
   void onWindowClose() async {
-    bool _isPreventClose = await windowManager.isPreventClose();
-    if (_isPreventClose) {
-      showDialog(
-        context: context,
-        builder: (_) {
-          return ContentDialog(
-            title: const Text('Confirm close'),
-            content: const Text('Are you sure you want to close this window?'),
-            actions: [
-              FilledButton(
-                child: const Text('Yes'),
-                onPressed: () {
-                  Navigator.pop(context);
-                  windowManager.destroy();
-                },
-              ),
-              Button(
-                child: const Text('No'),
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-              ),
-            ],
-          );
-        },
-      );
-    }
+    Navigator.pop(context);
+    windowManager.destroy();
   }
 }
 

@@ -1,9 +1,10 @@
 // ignore_for_file: constant_identifier_names
 
+import 'dart:io';
+
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:provider/provider.dart';
 
-import '../main.dart';
 import '../theme.dart';
 
 class Settings extends StatelessWidget {
@@ -21,8 +22,11 @@ class Settings extends StatelessWidget {
       header: const PageHeader(title: Text('Settings')),
       scrollController: controller,
       children: [
-        Text(usbipdVersion.stdout
-            .substring(0, usbipdVersion.stdout.indexOf('+'))),
+        Text('USBipd version',
+            style: FluentTheme.of(context).typography.subtitle),
+        spacer,
+        Text(getVersion()),
+        biggerSpacer,
         Text('Theme mode', style: FluentTheme.of(context).typography.subtitle),
         spacer,
         ...List.generate(ThemeMode.values.length, (index) {
@@ -43,5 +47,10 @@ class Settings extends StatelessWidget {
         biggerSpacer,
       ],
     );
+  }
+
+  String getVersion() {
+    final version = Process.runSync('usbipd', ['--version']).stdout;
+    return version.substring(0, version.indexOf('+'));
   }
 }
