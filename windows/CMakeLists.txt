@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
-project(example LANGUAGES CXX)
+project(usbipd-win-gui LANGUAGES CXX)
 
-set(BINARY_NAME "example")
+set(BINARY_NAME "usbipd-win-gui")
 
 cmake_policy(SET CMP0063 NEW)
 
