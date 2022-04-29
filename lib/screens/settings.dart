@@ -22,10 +22,13 @@ class Settings extends StatelessWidget {
       header: const PageHeader(title: Text('Settings')),
       scrollController: controller,
       children: [
-        Text('USBipd version',
-            style: FluentTheme.of(context).typography.subtitle),
+        Text('usbipd info', style: FluentTheme.of(context).typography.subtitle),
         spacer,
         Text(getVersion()),
+        spacer,
+        Text(isUsbpcapPresent()
+            ? 'USBPcap is installed'
+            : 'USBPcap is not installed'),
         biggerSpacer,
         Text('Theme mode', style: FluentTheme.of(context).typography.subtitle),
         spacer,
@@ -52,5 +55,10 @@ class Settings extends StatelessWidget {
   String getVersion() {
     final version = Process.runSync('usbipd', ['--version']).stdout;
     return version.substring(0, version.indexOf('+'));
+  }
+
+  // Return true if USBPcap is installed
+  bool isUsbpcapPresent() {
+    return Process.runSync('usbipd', ['list']).stderr != '';
   }
 }

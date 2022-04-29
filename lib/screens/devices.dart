@@ -11,6 +11,19 @@ class Devices extends StatefulWidget {
   State<Devices> createState() => _DevicesState();
 }
 
+bool usbpcap = isUsbpcapPresent();
+
+class Device {
+  String id;
+  String name;
+  String status;
+  Device(this.id, this.name, this.status);
+  @override
+  String toString() {
+    return '$id - $name - $status';
+  }
+}
+
 List<Device> devices = getDevices();
 Iterable<TreeViewItem> selectedDevices = <TreeViewItem>[];
 
@@ -20,7 +33,10 @@ class _DevicesState extends State<Devices> {
   Widget build(BuildContext context) {
     const spacer = SizedBox(height: 10.0);
     List<TreeViewItem> treeViewItemsMultipleSelection = devices
-        .map((e) => TreeViewItem(content: Text(e.name), value: e.id))
+        .map((e) => TreeViewItem(
+            content: Text(e.name + '  |  ' + e.status),
+            value: e.id,
+            selected: e.status != 'Not shared'))
         .toList();
     return ScaffoldPage.scrollable(
       header: const PageHeader(title: Text('Devices')),
@@ -47,16 +63,42 @@ class _DevicesState extends State<Devices> {
       ],
     );
   }
-}
 
-class Device {
-  String id;
-  String name;
-  String status;
-  Device(this.id, this.name, this.status);
-  @override
-  String toString() {
-    return '$id - $name - $status';
+  void toggleItem(String item) {
+    // TODO: Maybe optimize with one call only
+    if (List.generate(selectedDevices.length,
+            (i) => selectedDevices.elementAt(i).value).contains(item) &&
+        devices.where((e) => e.id == item).first.status == 'Not shared') {
+      debugPrint(devices.where((e) => e.id == item).first.status);
+      attachDevice(item);
+    } else if (!List.generate(selectedDevices.length,
+            (i) => selectedDevices.elementAt(i).value).contains(item) &&
+        devices.where((e) => e.id == item).first.status != 'Not shared') {
+      detachDevice(item);
+    }
+
+    //Update the widget
+    setState(() {});
+  }
+
+  bool attachDevice(String id) {
+    if (usbpcap) {
+      Process.runSync('usbipd', ['bind', '--force', '--busid', id]);
+    }
+    Process.runSync('usbipd', ['wsl', 'attach', '--busid', id]);
+    devices = getDevices();
+    debugPrint('attached $id');
+    return true;
+  }
+
+  bool detachDevice(String id) {
+    Process.runSync('usbipd', ['wsl', 'detach', '--busid', id]);
+    if (usbpcap) {
+      Process.runSync('usbipd', ['unbind', '--busid', id]);
+    }
+    devices = getDevices();
+    debugPrint('detached $id');
+    return true;
   }
 }
 
@@ -82,27 +124,5 @@ List<Device> getDevices() {
 
 // Return true if USBPcap is installed
 bool isUsbpcapPresent() {
-  return Process.runSync('usbipd', ['list']).stderr != [];
-}
-
-void toggleItem(String item) {
-  if (List.generate(
-          selectedDevices.length, (i) => selectedDevices.elementAt(i).value)
-      .contains(item)) {
-    attachDevice(item);
-  } else {
-    detachDevice(item);
-  }
-}
-
-bool attachDevice(String id) {
-  // Process.runSync('usbipd', ['attach', id]);
-  debugPrint('attached $id');
-  return true;
-}
-
-bool detachDevice(String id) {
-  // Process.runSync('usbipd', ['detach', id]);
-  debugPrint('detached $id');
-  return true;
+  return Process.runSync('usbipd', ['list']).stderr != '';
 }

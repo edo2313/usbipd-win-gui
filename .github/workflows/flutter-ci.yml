@@ -18,7 +18,7 @@ jobs:
         cache-path: ${{ runner.tool_cache }}/flutter
         architecture: x64
     - run: flutter pub get
-    - run: flutter format --set-exit-if-changed .
+    # - run: flutter format --set-exit-if-changed .
     - run: flutter analyze .    
     - run: flutter build windows
     - uses: actions/upload-artifact@v3
