@@ -173,7 +173,7 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
           _LinkPaneItemAction(
             icon: const Icon(FluentIcons.open_source),
             title: const Text('Source code'),
-            link: 'https://github.com/edo2313',
+            link: 'https://github.com/edo2313/usbipd-win-gui',
           ),
         ],
       ),
