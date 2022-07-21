@@ -154,7 +154,7 @@ List<Device> oldGetDevices() {
         break;
       }
       String busid = line.substring(busidIndex, vidpidIndex).trim();
-      String vidpid = line.substring(vidpidIndex, nameIndex).trim();
+      // String vidpid = line.substring(vidpidIndex, nameIndex).trim();
       String name = line.substring(nameIndex, statusIndex).trim();
       String status = line.substring(statusIndex).trim();
       devices.add(Device(busid, name, status));
