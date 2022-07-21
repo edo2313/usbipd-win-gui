@@ -1,11 +1,10 @@
 // ignore_for_file: constant_identifier_names
 
-import 'dart:io';
-
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../theme.dart';
+import '../utilities.dart';
 
 class Settings extends StatelessWidget {
   const Settings({Key? key, this.controller}) : super(key: key);
@@ -50,15 +49,5 @@ class Settings extends StatelessWidget {
         biggerSpacer,
       ],
     );
-  }
-
-  String getVersion() {
-    final version = Process.runSync('usbipd', ['--version']).stdout;
-    return version.substring(0, version.indexOf('+'));
-  }
-
-  // Return true if USBPcap is installed
-  bool isUsbpcapPresent() {
-    return Process.runSync('usbipd', ['list']).stderr != '';
   }
 }

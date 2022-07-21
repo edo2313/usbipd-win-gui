@@ -1,6 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:fluent_ui/fluent_ui.dart';
+import 'package:version/version.dart';
+
+import '../utilities.dart';
 
 class Devices extends StatefulWidget {
   const Devices({Key? key, this.controller}) : super(key: key);
@@ -34,7 +38,7 @@ class _DevicesState extends State<Devices> {
     const spacer = SizedBox(height: 10.0);
     List<TreeViewItem> treeViewItemsMultipleSelection = devices
         .map((e) => TreeViewItem(
-            content: Text(e.name + '  |  ' + e.status),
+            content: Text('${e.name}  |  ${e.status}'),
             value: e.id,
             selected: e.status != 'Not shared'))
         .toList();
@@ -49,14 +53,18 @@ class _DevicesState extends State<Devices> {
               maxHeight: 380,
               maxWidth: 350,
             ),
-            child: TreeView(
-              selectionMode: TreeViewSelectionMode.multiple,
-              shrinkWrap: false,
-              items: treeViewItemsMultipleSelection,
-              onItemInvoked: (item) async => toggleItem(item.value),
-              onSelectionChanged: (newItems) async =>
-                  selectedDevices = newItems,
-            ),
+            child: treeViewItemsMultipleSelection.isNotEmpty
+                ? TreeView(
+                    selectionMode: TreeViewSelectionMode.multiple,
+                    shrinkWrap: false,
+                    items: treeViewItemsMultipleSelection,
+                    onItemInvoked: (item) async => toggleItem(item.value),
+                    onSelectionChanged: (newItems) async =>
+                        selectedDevices = newItems,
+                  )
+                : const Center(
+                    child: Text('No devices found'),
+                  ),
           ),
         ),
         spacer,
@@ -103,26 +111,54 @@ class _DevicesState extends State<Devices> {
 }
 
 List<Device> getDevices() {
-  List<Device> devices = [];
+  if (Version.parse(getVersion()) > Version.parse('2.2.0')) {
+    return newGetDevices();
+  } else {
+    return oldGetDevices();
+  }
+}
 
-  String? match = RegExp(r"(Connected.*\r*\n*.*STATE\r\n)((.+\r\n)+)")
-      .firstMatch(Process.runSync('usbipd', ['list']).stdout)
-      ?.group(2);
-  if (match != null) {
-    match.split('\r\n').forEach((e) {
-      RegExpMatch? device = RegExp(
-              r"(?<id>[0-9]+-[0-9]+)\s*(?<name>(?:\S+\s)+)\s*(?<status>(?:\S+\s?)+)")
-          .firstMatch(e);
-      if (device != null) {
-        devices.add(Device(device.namedGroup('id')!, device.namedGroup('name')!,
-            device.namedGroup('status')!));
+List<Device> newGetDevices() {
+  List<Device> devices = <Device>[];
+  String? output = Process.runSync('usbipd', ['state']).stdout;
+  if (output != null) {
+    Map<String, dynamic> json = jsonDecode(output);
+    json['Devices']?.forEach((e) {
+      if (e['PersistedGuid'] == null || e['ClientWslInstance'] != null) {
+        devices.add(Device(e['BusId'], e['Description'],
+            e['ClientWslInstance'] == null ? 'Not shared' : 'Shared'));
       }
     });
   }
+
   return devices;
 }
 
-// Return true if USBPcap is installed
-bool isUsbpcapPresent() {
-  return Process.runSync('usbipd', ['list']).stderr != '';
+List<Device> oldGetDevices() {
+  List<Device> devices = <Device>[];
+
+  String? output = Process.runSync('usbipd', ['list']).stdout;
+  if (output != null) {
+    List<String> splitOutput = output.split('\r\n');
+    if (splitOutput.removeAt(0) != 'Connected:') {
+      return [];
+    }
+    String headers = splitOutput.removeAt(0);
+    int busidIndex = headers.indexOf("BUSID");
+    int vidpidIndex = headers.indexOf("VID:PID");
+    int nameIndex = headers.indexOf("DEVICE");
+    int statusIndex = headers.indexOf("STATE");
+
+    for (String line in splitOutput) {
+      if (line.isEmpty) {
+        break;
+      }
+      String busid = line.substring(busidIndex, vidpidIndex).trim();
+      String vidpid = line.substring(vidpidIndex, nameIndex).trim();
+      String name = line.substring(nameIndex, statusIndex).trim();
+      String status = line.substring(statusIndex).trim();
+      devices.add(Device(busid, name, status));
+    }
+  }
+  return devices;
 }

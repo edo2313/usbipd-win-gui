@@ -16,12 +16,13 @@ dependencies:
   system_theme: ^2.0.0
   window_manager: ^0.2.1
   url_launcher: ^6.0.20
+  version: ^3.0.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_native_splash: ^2.1.6
-  flutter_lints: ^1.0.4
+  flutter_lints: ^2.0.1
 
 flutter:
   uses-material-design: true
