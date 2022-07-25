@@ -4,7 +4,7 @@ import 'package:fluent_ui/fluent_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../theme.dart';
-import '../utilities.dart';
+import '../globals.dart' as globals;
 
 class Settings extends StatelessWidget {
   const Settings({Key? key, this.controller}) : super(key: key);
@@ -23,9 +23,9 @@ class Settings extends StatelessWidget {
       children: [
         Text('usbipd info', style: FluentTheme.of(context).typography.subtitle),
         spacer,
-        Text(getVersion()),
+        Text(globals.version),
         spacer,
-        Text(isUsbpcapPresent()
+        Text(globals.isUsbpcapPresent
             ? 'USBPcap is installed'
             : 'USBPcap is not installed'),
         biggerSpacer,

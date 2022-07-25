@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
@@ -8,10 +10,19 @@ import 'package:window_manager/window_manager.dart';
 import 'screens/devices.dart';
 import 'screens/settings.dart';
 import 'theme.dart';
+import 'globals.dart' as globals;
 
 const String appTitle = 'usbipd-win GUI';
 
 void main() async {
+  // Initialize the global variables
+  globals.isUsbpcapPresent = Process.runSync('usbipd', ['list']).stderr != '';
+  globals.version = () {
+    final version = Process.runSync('usbipd', ['--version']).stdout;
+    return version.substring(0, version.indexOf('+'));
+  }();
+  globals.selectedDistribution = globals.getWslDistributions().singleWhere((element) => element.isDefault);
+
   WidgetsFlutterBinding.ensureInitialized();
   SystemTheme.accentColor.load();
 
