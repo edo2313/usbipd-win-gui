@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:fluent_ui/fluent_ui.dart';
-import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:system_theme/system_theme.dart';
 import 'package:url_launcher/link.dart';
@@ -21,7 +20,8 @@ void main() async {
     final version = Process.runSync('usbipd', ['--version']).stdout;
     return version.substring(0, version.indexOf('+'));
   }();
-  globals.selectedDistribution = globals.getWslDistributions().singleWhere((element) => element.isDefault);
+  globals.selectedDistribution =
+      globals.getWslDistributions().singleWhere((element) => element.isDefault);
 
   WidgetsFlutterBinding.ensureInitialized();
   SystemTheme.accentColor.load();
@@ -56,27 +56,27 @@ class MyApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           home: const MyHomePage(),
           color: appTheme.color,
-          darkTheme: ThemeData(
+          darkTheme: FluentThemeData(
             brightness: Brightness.dark,
             accentColor: appTheme.color,
             visualDensity: VisualDensity.standard,
             focusTheme: FocusThemeData(
-              glowFactor: is10footScreen() ? 2.0 : 0.0,
+              glowFactor: is10footScreen(context) ? 2.0 : 0.0,
             ),
           ),
-          theme: ThemeData(
+          theme: FluentThemeData(
+            brightness: Brightness.light,
             accentColor: appTheme.color,
             visualDensity: VisualDensity.standard,
             focusTheme: FocusThemeData(
-              glowFactor: is10footScreen() ? 2.0 : 0.0,
+              glowFactor: is10footScreen(context) ? 2.0 : 0.0,
             ),
           ),
           builder: (context, child) {
             return Directionality(
               textDirection: appTheme.textDirection,
               child: NavigationPaneTheme(
-                data: const NavigationPaneThemeData(
-                    backgroundColor: Colors.transparent),
+                data: const NavigationPaneThemeData(),
                 child: child!,
               ),
             );
@@ -125,7 +125,6 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
       appBar: NavigationAppBar(
         automaticallyImplyLeading: false,
         title: () {
-          if (kIsWeb) return const Text(appTitle);
           return const DragToMoveArea(
             child: Align(
               alignment: AlignmentDirectional.centerStart,
@@ -133,14 +132,12 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
             ),
           );
         }(),
-        actions: kIsWeb
-            ? null
-            : DragToMoveArea(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [Spacer(), WindowButtons()],
-                ),
-              ),
+        actions: const DragToMoveArea(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [Spacer(), WindowButtons()],
+          ),
+        ),
       ),
       pane: NavigationPane(
         selected: index,
@@ -173,6 +170,7 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
           PaneItem(
             icon: const Icon(FluentIcons.usb),
             title: const Text('Devices'),
+            body: Devices(controller: devicesController),
           ),
         ],
         footerItems: [
@@ -180,6 +178,7 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
           PaneItem(
             icon: const Icon(FluentIcons.settings),
             title: const Text('Settings'),
+            body: Settings(controller: settingsController),
           ),
           _LinkPaneItemAction(
             icon: const Icon(FluentIcons.open_source),
@@ -188,10 +187,6 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
           ),
         ],
       ),
-      content: NavigationBody(index: index, children: [
-        Devices(controller: devicesController),
-        Settings(controller: settingsController),
-      ]),
     );
   }
 
@@ -207,7 +202,7 @@ class WindowButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = FluentTheme.of(context);
+    final FluentThemeData theme = FluentTheme.of(context);
 
     return SizedBox(
       width: 138,
@@ -224,13 +219,14 @@ class _LinkPaneItemAction extends PaneItem {
   _LinkPaneItemAction({
     required Widget icon,
     required this.link,
-    title,
+    required title,
     infoBadge,
     focusNode,
     autofocus = false,
   }) : super(
           icon: icon,
           title: title,
+          body: const SizedBox(),
           infoBadge: infoBadge,
           focusNode: focusNode,
           autofocus: autofocus,
@@ -244,6 +240,7 @@ class _LinkPaneItemAction extends PaneItem {
     bool selected,
     VoidCallback? onPressed, {
     PaneDisplayMode? displayMode,
+    int? itemIndex,
     bool showTextOnTop = true,
     bool? autofocus,
   }) {
@@ -255,6 +252,7 @@ class _LinkPaneItemAction extends PaneItem {
         followLink,
         displayMode: displayMode,
         showTextOnTop: showTextOnTop,
+        itemIndex: itemIndex,
         autofocus: autofocus,
       ),
     );

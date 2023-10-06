@@ -28,8 +28,12 @@ class Settings extends StatelessWidget {
         Text(globals.isUsbpcapPresent
             ? 'USBPcap is installed'
             : 'USBPcap is not installed'),
+        spacer,
+        Text('WSL', style: FluentTheme.of(context).typography.subtitle),
+        spacer,
+        Text(globals.selectedDistribution.name),
         biggerSpacer,
-        Text('Theme mode', style: FluentTheme.of(context).typography.subtitle),
+        Text('Theme', style: FluentTheme.of(context).typography.subtitle),
         spacer,
         ...List.generate(ThemeMode.values.length, (index) {
           final mode = ThemeMode.values[index];

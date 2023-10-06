@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:fluent_ui/fluent_ui.dart';
-import 'package:version/version.dart';
 
 import '../globals.dart' as globals;
 
@@ -28,18 +27,19 @@ class Device {
 
 List<Device> devices = getDevices();
 List<TreeViewItem> selectedDevices = <TreeViewItem>[];
-bool isRefreshing = false;
 
 class _DevicesState extends State<Devices> {
+  bool isRefreshing = false;
+  String? processingId;
   String? selectedDevice;
   @override
   Widget build(BuildContext context) {
     const spacer = SizedBox(height: 10.0);
-    List<TreeViewItem> treeViewItemsMultipleSelection = devices
-        .map((e) => TreeViewItem(
+    List<Checkbox> deviceCheckboxes = devices
+        .map((e) => Checkbox(
             content: Text('${e.name}  |  ${e.status}'),
-            value: e.id,
-            selected: e.status != 'Not shared'))
+            onChanged: processingId == e.id ? null : (value) => toggleItem(e, value),
+            checked: e.status != 'Not shared'))
         .toList();
     return ScaffoldPage.scrollable(
       header: PageHeader(
@@ -56,24 +56,30 @@ class _DevicesState extends State<Devices> {
       scrollController: widget.controller,
       children: [
         SizedBox(
-          child: Container(
-            constraints: const BoxConstraints(
-              minHeight: 380,
-              maxHeight: 380,
-              maxWidth: 350,
-            ),
-            child: treeViewItemsMultipleSelection.isNotEmpty
-                ? TreeView(
-                    selectionMode: TreeViewSelectionMode.multiple,
-                    shrinkWrap: false,
-                    items: treeViewItemsMultipleSelection,
-                    onItemInvoked: (item) async => toggleItem(item),
-                    onSelectionChanged: (newItems) async =>
-                        selectedDevices = newItems.toList(),
-                  )
-                : const Center(
-                    child: Text('No devices found'),
-                  ),
+          child: Stack(
+            alignment: AlignmentDirectional.center,
+            children: [
+              Container(
+                constraints: const BoxConstraints(
+                  maxHeight: 380,
+                  maxWidth: 350,
+                ),
+                child: deviceCheckboxes.isNotEmpty
+                    ? Column(
+                        children: [
+                          Expanded(
+                            child: ListView(
+                              children: deviceCheckboxes,
+                            ),
+                          ),
+                        ],
+                      )
+                    : const Center(
+                        child: Text('No devices found'),
+                      ),
+              ),
+              processingId != null ? const ProgressRing() : const Text('not working...'),
+            ],
           ),
         ),
         spacer,
@@ -81,62 +87,46 @@ class _DevicesState extends State<Devices> {
     );
   }
 
-  void toggleItem(TreeViewItem item) {
-    if (item.selected == false) {
-      detachDevice(item.value);
-    } else {
-      attachDevice(item.value);
-    }
-
-    // TODO: Maybe optimize with one call only
-    // if (List.generate(selectedDevices.length,
-    //         (i) => selectedDevices.elementAt(i).value).contains(item) &&
-    //     devices.where((e) => e.id == item).first.status == 'Not shared') {
-    //   debugPrint(devices.where((e) => e.id == item).first.status);
-    //   attachDevice(item);
-    // } else if (!List.generate(selectedDevices.length,
-    //         (i) => selectedDevices.elementAt(i).value).contains(item) &&
-    //     devices.where((e) => e.id == item).first.status != 'Not shared') {
-    //   detachDevice(item);
-    // }
-
-    //Update the widget
-    setState(() {});
+  void toggleItem(Device device, bool? value) {
+    setState(() {
+      processingId = device.id;
+    });
+    (value == true ? attachDevice(device) : detachDevice(device))
+        .then((value) => setState(() {
+              processingId = null;
+            }));
   }
 
-  void attachDevice(String id) {
+  Future<void> attachDevice(Device device) async {
     if (globals.isUsbpcapPresent) {
-      Process.runSync('usbipd', ['bind', '--force', '--busid', id]);
+      await Process.run('usbipd', ['bind', '--force', '--busid', device.id]);
     }
-    Process.runSync('usbipd', ['wsl', 'attach', '--busid', id]);
+    await Process.run('usbipd', ['wsl', 'attach', '--busid', device.id]);
     devices = getDevices();
-    debugPrint('attached $id');
+    debugPrint('attached $device.id');
   }
 
-  void detachDevice(String id) {
-    Process.runSync('usbipd', ['wsl', 'detach', '--busid', id]);
+  Future<void> detachDevice(Device device) async {
+    await Process.run('usbipd', ['wsl', 'detach', '--busid', device.id]);
     if (globals.isUsbpcapPresent) {
-      Process.runSync('usbipd', ['unbind', '--busid', id]);
+      await Process.run('usbipd', ['unbind', '--busid', device.id]);
     }
     devices = getDevices();
-    debugPrint('detached $id');
+    debugPrint('detached $device.id');
   }
 
-  void refreshDevices() {
+  Future<void> refreshDevices() async {
+    setState(() {
+      isRefreshing = true;
+    });
     devices = getDevices();
-    setState(() {});
+    setState(() {
+      isRefreshing = false;
+    });
   }
 }
 
-List<Device> getDevices() {  
-  if (Version.parse(globals.version) > Version.parse('2.2.0')) {
-    return newGetDevices();
-  } else {
-    return oldGetDevices();
-  }
-}
-
-List<Device> newGetDevices() {
+List<Device> getDevices() {
   List<Device> devices = <Device>[];
   String? output = Process.runSync('usbipd', ['state']).stdout;
   if (output != null) {
@@ -153,34 +143,5 @@ List<Device> newGetDevices() {
     });
   }
 
-  return devices;
-}
-
-List<Device> oldGetDevices() {
-  List<Device> devices = <Device>[];
-
-  String? output = Process.runSync('usbipd', ['list']).stdout;
-  if (output != null) {
-    List<String> splitOutput = output.split('\r\n');
-    if (splitOutput.removeAt(0) != 'Connected:') {
-      return [];
-    }
-    String headers = splitOutput.removeAt(0);
-    int busidIndex = headers.indexOf("BUSID");
-    int vidpidIndex = headers.indexOf("VID:PID");
-    int nameIndex = headers.indexOf("DEVICE");
-    int statusIndex = headers.indexOf("STATE");
-
-    for (String line in splitOutput) {
-      if (line.isEmpty) {
-        break;
-      }
-      String busid = line.substring(busidIndex, vidpidIndex).trim();
-      // String vidpid = line.substring(vidpidIndex, nameIndex).trim();
-      String name = line.substring(nameIndex, statusIndex).trim();
-      String status = line.substring(statusIndex).trim();
-      devices.add(Device(busid, name, status));
-    }
-  }
   return devices;
 }
